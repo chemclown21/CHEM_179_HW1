@@ -407,7 +407,7 @@ int main() {
     }
     double FinalE = CalculateLJPEnergy(n,A,atom_list);
     cout << "Final energy: " << FinalE << endl;
-    count << "Optimized structure: " << endl;
+    cout << "Optimized structure: " << endl;
     for (int i = 0; i < n; ++i) {
         cout << atom_list[i]<<  '(' << A[i][0] << ',' << A[i][1] << ',' << A[i][2] << ')' << endl;
     }

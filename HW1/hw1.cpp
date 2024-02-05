@@ -317,7 +317,6 @@ double GradNorm(int n,mat Gradient){
     return norm_val;
 }
 
-//int argc, char** argv
 int main() {
     // Read in file
     string file_name = "2.txt";
@@ -340,7 +339,7 @@ int main() {
     vector<double> Cen_error;
 
     // Iterate through diff h values & calculate approximate force
-    bool run = false;
+    bool run = true;
     if (run){
         for (double h : h_values){
             cout << "Stepsize for finite difference:" << h << endl;
@@ -356,25 +355,60 @@ int main() {
 
 
     // Calculate slope of truncation error vs h
-    //TruncationErrorCalculations(For_error,Cen_error,h_values);
+    TruncationErrorCalculations(For_error,Cen_error,h_values);
 
     // Question 3
     cout << "start steepest descent with golden section line search" << endl;
     double E = CalculateLJPEnergy(n,xyz_list,atom_list);
     cout << "Initial energy: " << E << endl;
     double h = 0.0001;
-    double s = 10;
+    double s2 = 0.3; //standard step
     double golden = (3-sqrt(5))/2;
-    double ForceConvergenceThreshold = 1e-8;
-    cout << "Stepsize for central difference is:"<< h <<";Initial stepsize for line search is:"<< s <<";Threshold for convergence in force is:" << ForceConvergenceThreshold << endl;
+    double s1 = 10; // initial step
+    double ForceConvergenceThreshold = 0.01;
+    double EnergyConvergenceThreshold = 1e-8;
+    cout << "Stepsize for central difference is:"<< h <<";Initial stepsize for line search is:"<< s2 <<";Threshold for convergence in force is:" << ForceConvergenceThreshold << endl;
     auto [For_F,Cen_F] = CalculateApproxForce(n , xyz_list, atom_list,h);
     Cen_F.print("Central Difference Force");
-    //mat xyz = VecVec2Mat(n,xyz_list); //convert to matrix
-    //xyz.print("here is the new matrix");
-    // Stepsize for central difference is:
-     //step
 
     //UnitGrad(n,F).print("Hopefully unit vector");
+    cout << "Start steepest descent with golden section line search using central difference force" << endl;
+    vector<vector<double>> A = xyz_list;
+    int numberIterations;
+    while (GradNorm(n,F)> ForceConvergenceThreshold){
+        numberIterations += 1;
+        cout << "Start golden section search. Interation " << numberIterations << endl;
+        mat C = VecVec2Mat(n,A)+UnitGrad(n,F)*s1;
+        mat B = VecVec2Mat(n,A)+UnitGrad(n,Cen_F)*s1*golden;
+        double s1 = 0;
+        while (CalculateLJPEnergy(n,Mat2VecVec(n,B),atom_list) > CalculateLJPEnergy(n,Mat2VecVec(n,C),atom_list) or  CalculateLJPEnergy(n,Mat2VecVec(n,B),atom_list) > CalculateLJPEnergy(n,A,atom_list)){
+            s1 += s2;
+            mat C = VecVec2Mat(n,A)+UnitGrad(n,F)*s1;
+            mat B = VecVec2Mat(n,A)+UnitGrad(n,Cen_F)*s1*golden;
+        }
+        mat X1 = VecVec2Mat(n,A) + UnitGrad(n,F)*s1*golden*golden;
+        mat X2 = VecVec2Mat(n,A) + UnitGrad(n,F)*s1*golden*(1+golden);
+        mat D;
+        if (CalculateLJPEnergy(n,Mat2VecVec(n,X1),atom_list) <= CalculateLJPEnergy(n,Mat2VecVec(n,X2),atom_list)){
+            mat D = X1;
+        } else {
+            mat D = X2;
+        }
+        D.print("New point");
+        // Exit loop if convergence reached
+        if (abs(CalculateLJPEnergy(n,Mat2VecVec(n,D),atom_list)-CalculateLJPEnergy(n,A,atom_list)) <= EnergyConvergenceThreshold){
+            break;
+        }
+        vector<vector<double>> A = Mat2VecVec(n,D);
+        F = CalculateAnalyticalForce(n,A,atom_list);
+        auto [For_F,Cen_F] = CalculateApproxForce(n , xyz_list, atom_list,h);
+        Cen_F.print("Central Difference Force");
 
-    
+    }
+    double FinalE = CalculateLJPEnergy(n,A,atom_list);
+    cout << "Final energy: " << FinalE << endl;
+    count << "Optimized structure: " << endl;
+    for (int i = 0; i < n; ++i) {
+        cout << atom_list[i]<<  '(' << A[i][0] << ',' << A[i][1] << ',' << A[i][2] << ')' << endl;
+    }
 }

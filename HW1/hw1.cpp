@@ -271,7 +271,7 @@ void TruncationErrorCalculations(vector<double> For_error,vector<double> Cen_err
     }
     cout << "with slope " << C_avg_slope;
 }
-
+//Question 3
 mat VecVec2Mat(int n, vector<vector<double>> xyz_list){
     mat new_matrix(3,n,fill::zeros);
     for (int i = 0; i < n; ++i){
@@ -281,10 +281,46 @@ mat VecVec2Mat(int n, vector<vector<double>> xyz_list){
     }
     return new_matrix;
 }
+
+vector<vector<double>> Mat2VecVec(int n, mat coord_mat){
+    vector<vector<double>> new_vec;
+    for (int i = 0; i < n; ++i){
+        vector<double> coord = {coord_mat(0,i),coord_mat(1,i),coord_mat(2,i)};
+        new_vec.push_back(coord);
+    }
+    return new_vec;
+}
+
+double VecNorm(double x, double y, double z){
+    return sqrt(pow(x,2)+pow(y,2)+pow(z,2));
+}
+
+mat UnitGrad(int n,mat Gradient){
+    for (int i = 0; i < n; ++i){
+        Gradient(0,i) *= 1/VecNorm(Gradient(0,i),Gradient(1,i),Gradient(2,i));
+        Gradient(1,i) *= 1/VecNorm(Gradient(0,i),Gradient(1,i),Gradient(2,i));
+        Gradient(2,i) *= 1/VecNorm(Gradient(0,i),Gradient(1,i),Gradient(2,i));
+    }
+    return Gradient;
+}
+
+double GradNorm(int n,mat Gradient){
+    double x_comp = 0;
+    double y_comp = 0;
+    double z_comp = 0;
+    for (int i = 0; i < n; ++i){
+        x_comp += abs(Gradient(0,i));
+        y_comp += abs(Gradient(1,i));
+        z_comp += abs(Gradient(2,i));
+    }
+    double norm_val = VecNorm(x_comp,y_comp,z_comp);
+    return norm_val;
+}
+
 //int argc, char** argv
 int main() {
     // Read in file
-    string file_name = "1.txt";
+    string file_name = "2.txt";
     auto [n, xyz_list, atom_list] = read_txt_file(file_name);
 
     //Question 1: Calculate + print out LJP energy
@@ -304,22 +340,41 @@ int main() {
     vector<double> Cen_error;
 
     // Iterate through diff h values & calculate approximate force
-    for (double h : h_values){
-        cout << "Stepsize for finite difference:" << h << endl;
-        // Calculate Approximate Force (Forward Difference & Central Difference)
-        auto [For_F,Cen_F] = CalculateApproxForce(n , xyz_list, atom_list,h);
-        // Print force approximations
-        For_F.print("F_LJ_forward_difference");
-        Cen_F.print("F_LJ_central_difference");
-        For_error.push_back(accu(abs(For_F-F)));
-        Cen_error.push_back(accu(abs(Cen_F-F)));
+    bool run = false;
+    if (run){
+        for (double h : h_values){
+            cout << "Stepsize for finite difference:" << h << endl;
+            // Calculate Approximate Force (Forward Difference & Central Difference)
+            auto [For_F,Cen_F] = CalculateApproxForce(n , xyz_list, atom_list,h);
+            // Print force approximations
+            For_F.print("F_LJ_forward_difference");
+            Cen_F.print("F_LJ_central_difference");
+            For_error.push_back(accu(abs(For_F-F)));
+            Cen_error.push_back(accu(abs(Cen_F-F)));
+        }
     }
+
 
     // Calculate slope of truncation error vs h
     //TruncationErrorCalculations(For_error,Cen_error,h_values);
 
     // Question 3
-    mat xyz = VecVec2Mat(n,xyz_list); //convert to matrix
-    xyz.print("here is the new matrix");
+    cout << "start steepest descent with golden section line search" << endl;
+    double E = CalculateLJPEnergy(n,xyz_list,atom_list);
+    cout << "Initial energy: " << E << endl;
+    double h = 0.0001;
+    double s = 10;
+    double golden = (3-sqrt(5))/2;
+    double ForceConvergenceThreshold = 1e-8;
+    cout << "Stepsize for central difference is:"<< h <<";Initial stepsize for line search is:"<< s <<";Threshold for convergence in force is:" << ForceConvergenceThreshold << endl;
+    auto [For_F,Cen_F] = CalculateApproxForce(n , xyz_list, atom_list,h);
+    Cen_F.print("Central Difference Force");
+    //mat xyz = VecVec2Mat(n,xyz_list); //convert to matrix
+    //xyz.print("here is the new matrix");
+    // Stepsize for central difference is:
+     //step
 
+    //UnitGrad(n,F).print("Hopefully unit vector");
+
+    
 }
